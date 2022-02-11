@@ -22,7 +22,7 @@ vu.meter = False
 album.art = True
 auto.play = True
 long.press.time.ms = 700
-poweroff = True
+poweroff = False
 check.for.updates = False
 bluetooth = False
 
@@ -155,8 +155,9 @@ font.name = FiraSans.ttf
 [volume.control]
 type = amixer
 amixer.scale = linear
-amixer.control = Headphone
-initial.volume.level = 
+#amixer.control = Headphone
+amixer.control = Digital
+initial.volume.level = 10
 
 [player.screen]
 top.height = 14

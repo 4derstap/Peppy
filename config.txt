@@ -1,10 +1,10 @@
 [screen.info]
-width = 480
-height = 320
+width = 800
+height = 480
 depth = 32
 frame.rate = 30
-hdmi = False
-no.frame = False
+hdmi = True
+no.frame = True
 flip.touch.xy = False
 multi.touch = False
 
@@ -22,14 +22,14 @@ vu.meter = False
 album.art = True
 auto.play = True
 long.press.time.ms = 700
-poweroff = True
+poweroff = False
 check.for.updates = False
 bluetooth = False
 
 [logging]
 file.logging = False
 log.filename = /home/pi/Peppy/peppy.log
-console.logging = False
+console.logging = True
 enable.stdout = True
 show.mouse.events = False
 
@@ -97,15 +97,25 @@ about = True
 [screensaver.menu]
 clock = True
 logo = True
-slideshow = True
-peppymeter = True
-peppyweather = True
-spectrum = True
+slideshow = False
+peppymeter = False
+peppyweather = False
+spectrum = False
 lyrics = True
 random = True
 
 [screensaver.delay]
 delay = delay.1
+
+[languages.menu]
+English-USA = True
+German = True
+French = False
+Italian = False
+Spanish = False
+Russian = False
+Dutch = False
+Czech = False
 
 [collection.menu]
 genre = True
