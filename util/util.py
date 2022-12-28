@@ -1,4 +1,4 @@
-# Copyright 2016-2021 Peppy Player peppy.player@gmail.com
+# Copyright 2016-2022 Peppy Player peppy.player@gmail.com
 # 
 # This file is part of Peppy Player.
 # 
@@ -42,6 +42,8 @@ from util.bluetoothutil import BluetoothUtil
 from util.imageutil import ImageUtil, EXT_MP4, EXT_M4A
 from util.cdutil import CdUtil
 from util.switchutil import SwitchUtil
+from util.sambautil import SambaUtil
+from util.yastreamutil import YaStreamUtil
 from mutagen import File
 
 IMAGE_VOLUME = "volume"
@@ -65,6 +67,13 @@ IMAGE_NEW_BOOKS = "new-books"
 IMAGE_BOOK_GENRE = "book-genre"
 IMAGE_STAR = "star"
 
+CLASSIC_PRESETS = [71, 71, 71, 71, 71, 71, 84, 83, 83, 87]
+JAZZ_PRESETS = [71, 71, 72, 81, 71, 62, 62, 71, 71, 71]
+POP_PRESETS = [74, 65, 61, 60, 64, 73, 75, 75, 74, 74]
+ROCK_PRESETS = [58, 63, 80, 84, 77, 66, 58, 55, 55, 55]
+CONTEMPORARY_PRESETS = [60, 63, 71, 80, 79, 71, 60, 57, 57, 58]
+FLAT_PRESETS = [66, 66, 66, 66, 66, 66, 66, 66, 66, 66]
+
 PLAYER_RUNNING = "running"
 PLAYER_SLEEPING = "sleeping"
 
@@ -74,6 +83,7 @@ FILE_FOLDER = "folder.png"
 FILE_FOLDER_ON = "folder-on.png"
 FILE_DEFAULT_STATION = "default-station.png"
 FILE_DEFAULT_STREAM = "default-stream.png"
+FILE_FAVORITES = "favorites.m3u"
 
 EXT_PROPERTIES = ".properties"
 EXT_PNG = ".png"
@@ -83,7 +93,6 @@ EXT_M3U = ".m3u"
 FOLDER_ICONS = "icons"
 FOLDER_SLIDES = "slides"
 FOLDER_STATIONS = "stations"
-FOLDER_STREAMS = "streams"
 FOLDER_HOME = "home"
 FOLDER_GENRES = "genres"
 FOLDER_FONT = "font"
@@ -117,12 +126,10 @@ NUMBERS = {
 class Util(object):
     """ Utility class """
     
-    def __init__(self, connected_to_internet):
-        """ Initializer. Prepares Config object.
-        
-        :param connected_to_internet: True - connected to the Interner, False - disconnected
-        """
-        self.connected_to_internet = connected_to_internet
+    def __init__(self):
+        """ Initializer. Prepares Config object. """
+
+        self.connected_to_internet = False
         self.font_cache = {}
         self.voice_commands_cache = {}
         self.cd_titles = {}
@@ -139,10 +146,6 @@ class Util(object):
         self.pygame_screen = self.config_class.pygame_screen
         self.CURRENT_WORKING_DIRECTORY = os.getcwd()
         self.read_storage()
-        self.discogs_util = DiscogsUtil(self.k1)
-        self.image_util = ImageUtil(self)
-        self.file_util = FileUtil(self)
-        self.switch_util = SwitchUtil(self)
                 
         if (not os.environ.get('PYTHONHTTPSVERIFY', '') and getattr(ssl, '_create_unverified_context', None)): 
             ssl._create_default_https_context = ssl._create_unverified_context
@@ -150,6 +153,16 @@ class Util(object):
         self.db_util = None
         self.bluetooth_util = None
     
+    def init_utilities(self):
+        """ Initialize utilities """
+
+        self.discogs_util = DiscogsUtil(self.k1)
+        self.image_util = ImageUtil(self)
+        self.file_util = FileUtil(self)
+        self.switch_util = SwitchUtil(self)
+        self.samba_util = SambaUtil(self)
+        self.ya_stream_util = YaStreamUtil(self)
+
     def get_labels(self):
         """ Read labels for current language
         
@@ -222,7 +235,6 @@ class Util(object):
 
         :return: dictionary with metadata
         """
-        meta = {}
         mode = self.config[CURRENT][MODE]
 
         if mode == AUDIO_FILES:
@@ -232,13 +244,27 @@ class Util(object):
             folder = self.config[COLLECTION_PLAYBACK][COLLECTION_FOLDER]
             filename = self.config[COLLECTION_PLAYBACK][COLLECTION_FILE]
         else:
-            return meta
+            return {}
 
         path = os.path.join(folder, filename)
         if not path:
-            return meta
+            return {}
 
-        meta["filename"] = filename
+        return self.get_audio_file_metadata(path)
+
+    def get_audio_file_metadata(self, path):
+        """ Get audio file metadata
+
+        :param path: file path
+
+        :return: the dictionary with file metadata
+        """
+        meta = {}
+        if os.sep in path:
+            meta["filename"] = path[path.rfind(os.sep) + 1 : ]
+        else:
+            meta["filename"] = path
+
         try:
             filesize = os.stat(path).st_size
             meta["filesize"] = filesize
@@ -246,7 +272,7 @@ class Util(object):
             for i in INFO:
                 meta[i] = getattr(m.info, i, None)
 
-            if filename.lower().endswith(EXT_MP4) or filename.lower().endswith(EXT_M4A):
+            if path.lower().endswith(EXT_MP4) or path.lower().endswith(EXT_M4A):
                 metadata = MP4_METADATA
             else:
                 metadata = METADATA
@@ -322,8 +348,13 @@ class Util(object):
         :param top_folder: top folder under language
         :return: playlist as a string
         """
-        folder = os.path.join(os.getcwd(), FOLDER_LANGUAGES, language, FOLDER_RADIO_STATIONS, top_folder, genre)
-        path = os.path.join(folder, FILE_STATIONS)
+        if genre == KEY_FAVORITES:
+            folder = os.path.join(os.getcwd(), FOLDER_LANGUAGES, language, FOLDER_RADIO_STATIONS, top_folder)
+            path = os.path.join(folder, FILE_FAVORITES)
+        else:
+            folder = os.path.join(os.getcwd(), FOLDER_LANGUAGES, language, FOLDER_RADIO_STATIONS, top_folder, genre)
+            path = os.path.join(folder, FILE_STATIONS)
+
         playlist =""
 
         for encoding in ["utf8", "utf-8-sig", "utf-16"]:
@@ -431,7 +462,7 @@ class Util(object):
             if folder_image_on:
                 scaled_image_on = self.image_util.scale_image(folder_image_on, scale_ratio)
                 genre_button_state.icon_selected = (path_on, scaled_image_on)
-            
+
         genre_button_state.bgr = self.config[COLORS][COLOR_DARK]
         genre_button_state.img_x = None
         genre_button_state.img_y = None
@@ -571,7 +602,9 @@ class Util(object):
             item_name = None
             index += 1
 
-        cache[language + "_" + genre] = items
+        if items:
+            cache[language + "_" + genre] = items
+
         return items
 
     def get_stream_playlist(self):
@@ -587,7 +620,7 @@ class Util(object):
         item_name = None
         index = 0
 
-        folder = os.path.join(os.getcwd(), FOLDER_STREAMS)
+        folder = os.path.join(os.getcwd(), FOLDER_PLAYLISTS)
         path = os.path.join(folder, FILE_STREAMS)
         default_icon_path = os.path.join(os.getcwd(), FOLDER_ICONS, FILE_DEFAULT_STREAM)
         
@@ -659,7 +692,7 @@ class Util(object):
 
         :return: string
         """
-        path = os.path.join(os.getcwd(), FOLDER_STREAMS, FILE_STREAMS)
+        path = os.path.join(os.getcwd(), FOLDER_PLAYLISTS, FILE_STREAMS)
 
         for encoding in ["utf8", "utf-8-sig", "utf-16"]:
             try:
@@ -673,7 +706,7 @@ class Util(object):
 
         :param streams: file with podcasts links
         """
-        path = os.path.join(os.getcwd(), FOLDER_STREAMS, FILE_STREAMS)
+        path = os.path.join(os.getcwd(), FOLDER_PLAYLISTS, FILE_STREAMS)
         with codecs.open(path, 'w', UTF8) as file:
             file.write(streams)
 
@@ -979,7 +1012,7 @@ class Util(object):
             i += 1            
         return items
         
-    def load_menu(self, names, comparator, disabled_items=None, v_align=None, bb=None, scale=1, suffix=None):
+    def load_menu(self, names, comparator, disabled_items=None, h_align=None, v_align=None, bb=None, scale=1, suffix=None, show_image=True, wrap_lines=False):
         """ Load menu items
         
         :param names: list of menu item names (should have corresponding filename)
@@ -989,14 +1022,19 @@ class Util(object):
         :param bb: bounding box
         :param scale: image scale factor
         :param suffix: label suffix
+        :param show_image: True - show button image, False don't show
+        :param wrap_lines: True - wrap lines, False - show ellipsis
                 
         :return: dictionary with menu items
         """
         items = {}
             
         for i, name in enumerate(names):
-            icon = self.image_util.load_icon_main(name, bb, scale)
-            icon_on = self.image_util.load_icon_on(name, bb, scale)
+            if show_image:
+                icon = self.image_util.load_icon_main(name, bb, scale)
+                icon_on = self.image_util.load_icon_on(name, bb, scale)
+            else:
+                icon = icon_on = None
             
             if disabled_items and name in disabled_items:
                 icon_off = self.image_util.load_icon_off(name, bb, scale)
@@ -1014,6 +1052,7 @@ class Util(object):
             except:
                 state.l_genre = name
                 state.l_name = name
+
             state.icon_base = icon
             if icon_on:
                 state.icon_selected = icon_on
@@ -1024,14 +1063,17 @@ class Util(object):
                 state.icon_disabled = icon_on
             else:
                 state.icon_disabled = icon_off
-                
+
             state.bgr = self.config[COLORS][COLOR_DARK]
             state.img_x = None
             state.img_y = None
             state.auto_update = True
             state.show_bgr = True
-            state.show_img = True
+            state.show_img = show_image
             state.show_label = True
+            state.h_align = h_align
+            if wrap_lines:
+                state.wrap_labels = wrap_lines
             state.v_align = v_align
             if comparator == NAME:
                 state.comparator_item = state.name
@@ -1093,7 +1135,14 @@ class Util(object):
             return
 
         n = script_name[0:script_name.find(".py")]
-        m = importlib.import_module(SCRIPTS + "." + n)
+        name = SCRIPTS + "." + n
+
+        try:
+            m = importlib.import_module(name)
+        except Exception as e:
+            logging.debug(e)
+            os._exit(0)
+
         s = getattr(m, n.title())()
 
         if s.type == "sync":
@@ -1299,11 +1348,48 @@ class Util(object):
         
         return new_url
     
+    def get_equalizer(self):
+        """ Get equalizer values for all frequency bands
+
+        :return: list of frequency bands
+        """
+        values = FLAT_PRESETS.copy()
+        try:
+            config_values = self.config[CURRENT][EQUALIZER]
+            values = config_values.copy()
+        except:
+            pass
+
+        return values
+
+    def preset_equalizer(self, name):
+        """ Set equalizer values using presets
+
+        :param name: preset name
+        """
+        values = self.get_equalizer()
+
+        if name == CLASSICAL: values = CLASSIC_PRESETS.copy()
+        elif name == JAZZ: values = JAZZ_PRESETS.copy()
+        elif name == POP: values = POP_PRESETS.copy()
+        elif name == ROCK: values = ROCK_PRESETS.copy()
+        elif name == CONTEMPORARY: values = CONTEMPORARY_PRESETS.copy()
+        elif name == FLAT: values = FLAT_PRESETS.copy()
+
+        self.config[CURRENT][EQUALIZER] = values.copy()
+        self.set_equalizer(values)
+
+        return values
+
     def set_equalizer(self, values):
         """ Set equalizer values for all frequency bands
         
         :param values: values in range 0-100
         """
+        if not self.config[LINUX_PLATFORM]:
+            self.config[CURRENT][EQUALIZER] = values.copy()
+            return
+
         for i, v in enumerate(values):
             self.set_equalizer_band_value(i + 1, v)
 
@@ -1324,13 +1410,15 @@ class Util(object):
         """ Read storage """
         
         b64 = ZipFile("storage", "r").open("storage.txt").readline()
-        storage = base64.b64decode(b64)[::-1].decode("utf-8")[2:106]
+        storage = base64.b64decode(b64)[::-1].decode("utf-8")[2:182]
         n1 = 40
         n2 = 32
         n3 = 32
+        n4 = 56
         self.k1 = storage[:n1]
         self.k2 = storage[n1 : n1 + n2]
         self.k3 = storage[n1 + n2 : n1 + n2 + n3]
+        self.k4 = storage[n1 + n2 + n3 : n1 + n2 + n3 + n4]
         
     def get_podcasts_util(self):
         """ Get podcasts util object
@@ -1389,7 +1477,7 @@ class Util(object):
         else:
             bgr_color = self.config[BACKGROUND][SCREEN_BGR_COLOR]
 
-        if bgr_type == BGR_TYPE_IMAGE or blur_radius != None:
+        if bgr_type == BGR_TYPE_IMAGE or bgr_type == USE_ALBUM_ART or blur_radius != None:
             img = self.image_util.get_screen_bgr_image(index=index, blur_radius=blur_radius)
             if not img:
                 bgr_key = None
@@ -1602,6 +1690,7 @@ class Util(object):
 
         if not self.connected_to_internet:
             disabled_modes.append(STREAM)
+            disabled_modes.append(ARCHIVE)
 
         cdutil = CdUtil(self)
         cd_drives_info = cdutil.get_cd_drives_info()
@@ -1620,9 +1709,18 @@ class Util(object):
         if not self.config[LINUX_PLATFORM]:
             disabled_modes.append(AIRPLAY)
             disabled_modes.append(SPOTIFY_CONNECT)
+            disabled_modes.append(BLUETOOTH_SINK)
 
         db_util = self.get_db_util()
         if db_util.conn == None:
             disabled_modes.append(COLLECTION)
 
         return disabled_modes
+
+    def get_modes(self):
+        """ Get all user defined and enabled modes
+
+        :return: list of modes
+        """
+        disabled = self.get_disabled_modes()
+        return [m for m in MODES if m not in disabled and self.config[HOME_MENU][m]]

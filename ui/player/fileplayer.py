@@ -1,4 +1,4 @@
-# Copyright 2016-2021 Peppy Player peppy.player@gmail.com
+# Copyright 2016-2022 Peppy Player peppy.player@gmail.com
 # 
 # This file is part of Peppy Player.
 # 
@@ -99,8 +99,23 @@ class FilePlayerScreen(PlayerScreen):
         else:
             self.center_button.components[1].content_y = self.layout.CENTER.y
 
+        self.set_background(full_screen_image)
+
         self.center_button.selected = True
         self.link_borders()
+
+    def set_background(self, image):
+        """ Set album art as a screen background
+
+        :param image: image to set as a background
+        """
+        if image == None or self.config[BACKGROUND][BGR_TYPE] != USE_ALBUM_ART:
+            return
+
+        i = self.image_util.get_album_art_bgr(image)
+        if i != self.content:
+            self.content = i
+            self.clean_draw_update()
 
     def get_center_button(self):
         """ Create default audio file button
@@ -352,10 +367,7 @@ class FilePlayerScreen(PlayerScreen):
                 state.volume = None
             
         self.set_audio_file(new_track, state)
-        
-        if self.volume.get_position() != config_volume_level:
-            self.volume.set_position(config_volume_level)
-            self.volume.update_position()
+        self.refresh_volume()
     
     def set_audio_file_image(self, url=None, folder=None):
         """ Set audio file image
@@ -473,16 +485,7 @@ class FilePlayerScreen(PlayerScreen):
 
         :param state: button state
         """
-        b = self.factory.create_order_button(self.bottom_layout.LEFT, self.handle_order_button, state.name)
-        i = self.components.index(self.order_button)
-        self.components[i] = b
-        self.order_button = b
-        self.add_button_observers(self.order_button, self.update_observer, self.redraw_observer)
-        self.order_button.set_selected(True)
-        self.order_button.clean_draw_update()
-        self.current_button = self.order_button
-        self.link_borders()
-        self.config[PLAYER_SETTINGS][PLAYBACK_ORDER] = state.name
+        super().handle_order_popup_selection(state)
 
     def handle_info_popup_selection(self, state):
         """ Handle info menu selection

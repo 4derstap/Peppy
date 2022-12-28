@@ -2,10 +2,10 @@
 mode = radio
 language = German
 stream = 0
-equalizer = 
+equalizer = [66, 66, 66, 66, 66, 66, 66, 66, 66, 66]
 
 [player.settings]
-volume = 9
+volume = 12
 mute = False
 pause = False
 playback.order = cyclic
@@ -24,7 +24,7 @@ cd.track =
 cd.track.time = 
 
 [audiobooks]
-site = 
+site = Loyal Books
 book.title = 
 book.url = 
 image.url = 
@@ -43,6 +43,13 @@ collection.folder =
 collection.file = 
 collection.url = 
 collection.track.time = 
+
+[ya-streams]
+ya.stream.id = 
+ya.stream.name = 
+ya.stream.url = 
+ya.stream.thumbnail.path = 
+ya.stream.time = 
 
 [screensaver]
 name = clock

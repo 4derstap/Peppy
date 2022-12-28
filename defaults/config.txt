@@ -22,9 +22,11 @@ vu.meter = False
 album.art = True
 auto.play = True
 long.press.time.ms = 700
-poweroff = False
+desktop = False
 check.for.updates = False
 bluetooth = False
+samba = False
+dns.ip = 8.8.8.8
 
 [logging]
 file.logging = False
@@ -52,7 +54,9 @@ padding = 2
 rows = 5
 columns = 2
 alignment = left
-sort.by.type = False
+sort.by.type = True
+file.types = folders,files,playlists,images
+ascending = True
 wrap.lines = False
 horizontal.layout = True
 font.height = 38
@@ -83,6 +87,8 @@ podcasts = True
 airplay = False
 spotify-connect = False
 collection = False
+bluetooth-sink = False
+ya-streams = False
 
 [home.navigator]
 back = True
@@ -102,6 +108,10 @@ peppymeter = True
 peppyweather = True
 spectrum = True
 lyrics = True
+pexels = True
+monitor = True
+horoscope = True
+stock = True
 random = True
 
 [screensaver.delay]

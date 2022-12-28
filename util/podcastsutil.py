@@ -1,4 +1,4 @@
-# Copyright 2019-2021 Peppy Player peppy.player@gmail.com
+# Copyright 2019-2022 Peppy Player peppy.player@gmail.com
 # 
 # This file is part of Peppy Player.
 # 
@@ -29,9 +29,9 @@ from ui.layout.borderlayout import BorderLayout
 from ui.screen.screen import PERCENT_TOP_HEIGHT, PERCENT_TITLE_FONT
 from ui.screen.menuscreen import PERCENT_TOP_HEIGHT as PERCENT_TOP_HEIGHT_MENU_SCREEN
 from ui.menu.menu import Menu
-from util.config import PODCASTS, AUDIO_FILES, LOADING, PODCASTS_FOLDER, COLORS, COLOR_DARK, UTF8
+from util.config import PODCASTS, AUDIO_FILES, LOADING, PODCASTS_FOLDER, COLORS, COLOR_DARK, \
+    UTF8, FOLDER_PLAYLISTS
 
-FOLDER_PODCASTS = "podcasts"
 FILE_PODCASTS = "podcasts.m3u"
 FILE_DEFAULT_PODCAST = "podcasts.svg"
 FILE_PODCASTS_JSON = "podcasts.json"
@@ -131,7 +131,7 @@ class PodcastsUtil(object):
         if self.podcasts_links != None:
             return self.podcasts_links        
         
-        path = os.path.join(os.getcwd(), FOLDER_PODCASTS, FILE_PODCASTS)
+        path = os.path.join(os.getcwd(), FOLDER_PLAYLISTS, FILE_PODCASTS)
         self.podcasts_links = []
 
         for encoding in ["utf8", "utf-8-sig", "utf-16"]:
@@ -153,7 +153,7 @@ class PodcastsUtil(object):
 
         :return: string
         """
-        path = os.path.join(os.getcwd(), FOLDER_PODCASTS, FILE_PODCASTS)
+        path = os.path.join(os.getcwd(), FOLDER_PLAYLISTS, FILE_PODCASTS)
         for encoding in ["utf8", "utf-8-sig", "utf-16"]:
             try:
                 with codecs.open(path, 'r', encoding) as file:
@@ -166,7 +166,7 @@ class PodcastsUtil(object):
 
         :param podcasts: file with podcasts links
         """
-        path = os.path.join(os.getcwd(), FOLDER_PODCASTS, FILE_PODCASTS)
+        path = os.path.join(os.getcwd(), FOLDER_PLAYLISTS, FILE_PODCASTS)
         with codecs.open(path, 'w', UTF8) as file:
             file.write(podcasts)
 
@@ -229,14 +229,49 @@ class PodcastsUtil(object):
             
         return result
 
-    def get_podcast_info(self, index, podcast_url):
+    def get_podcasts_info(self):
+        """ Get podcasts info
+        
+        :return: list of podcast info
+        """
+        links = self.get_podcasts_links()
+
+        if not links:
+            return []
+
+        result = []
+
+        for i, link in enumerate(links):
+            try:
+                p = self.summary_cache[link]
+                p.index = i
+                result[link] = p
+                continue
+            except:
+                pass
+
+            r = self.get_podcast_info(i, link)
+            if r:
+                result.append(r)
+
+        return result
+
+    def get_podcast_info(self, index, podcast_url, include_icon=True):
         """ Get podcast info as state object
         
         :param index: podcast index
         :param podcast_url: podcast url
+        :param include_icon: True - include binary icon, False - don't include
         
         :return: podcast info as State object
         """
+        try:
+            p = self.summary_cache[podcast_url]
+            p.index = index
+            return p
+        except:
+            pass
+
         try:
             response = requests.get(podcast_url, timeout=(2, 2))
             if response.status_code == 404:
@@ -244,7 +279,7 @@ class PodcastsUtil(object):
             rss = feedparser.parse(response.content)
             if rss and getattr(rss, "bozo_exception", None):
                 return None
-        except:
+        except Exception as e:
             return None
             
         s = State()
@@ -266,7 +301,8 @@ class PodcastsUtil(object):
             img = ''
             
         s.image_name = img
-        s.icon_base = self.get_podcast_image(img, 0.48, 0.8, self.podcast_button_bb)
+        if include_icon:
+            s.icon_base = self.get_podcast_image(img, 0.48, 0.8, self.podcast_button_bb)
         self.summary_cache[s.url] = s
         
         return s
@@ -467,6 +503,7 @@ class PodcastsUtil(object):
         
         :return: dictionary with episodes
         """
+        podcast = None
         try:
             podcast = self.summary_cache[podcast_url]
             podcast_image_url = podcast.image_name
@@ -479,6 +516,11 @@ class PodcastsUtil(object):
         rss = feedparser.parse(podcast_url)
         if rss == None:
             return episodes
+
+        if podcast == None:
+            index = self.get_podcast_index(podcast_url)
+            podcast = self.get_podcast_info(index, podcast_url)
+            podcast_image_url = podcast.image_name
         
         entries = rss.entries
         i = 0
@@ -609,6 +651,10 @@ class PodcastsUtil(object):
         podcast_folder = self.config[PODCASTS_FOLDER]
         url = button_state.url
         filename = url.split('/')[-1]
+
+        if "?" in filename:
+            filename = filename.split("?")[0]    
+
         self.loading.append(filename)
         
         episode_file = os.path.join(podcast_folder, filename)

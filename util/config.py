@@ -1,4 +1,4 @@
-# Copyright 2016-2021 Peppy Player peppy.player@gmail.com
+# Copyright 2016-2022 Peppy Player peppy.player@gmail.com
 # 
 # This file is part of Peppy Player.
 # 
@@ -24,7 +24,7 @@ import shutil
 from configparser import ConfigParser
 from util.keys import *
 from urllib import request
-from player.proxy import VLC_NAME, MPD_NAME, MPV_NAME, SHAIRPORT_SYNC_NAME, RASPOTIFY_NAME
+from player.proxy import BLUETOOTH_SINK_NAME, VLC_NAME, MPD_NAME, MPV_NAME, SHAIRPORT_SYNC_NAME, RASPOTIFY_NAME
 from util.collector import GENRE, ARTIST, ALBUM, TITLE, DATE, TYPE, COMPOSER, FOLDER, FILENAME
 
 DEFAULT_VOLUME_LEVEL = 30
@@ -33,6 +33,7 @@ DEFAULTS = "defaults"
 FOLDER_LANGUAGES = "languages"
 FOLDER_RADIO_STATIONS = "radio-stations"
 FOLDER_BACKGROUNDS = "backgrounds"
+FOLDER_PLAYLISTS = "playlists"
 
 FILE_LABELS = "labels.properties"
 FILE_VOICE_COMMANDS = "voice-commands.properties"
@@ -74,9 +75,11 @@ USE_VU_METER = "vu.meter"
 USE_ALBUM_ART = "album.art"
 USE_AUTO_PLAY = "auto.play"
 USE_LONG_PRESS_TIME = "long.press.time.ms"
-USE_POWEROFF = "poweroff"
+USE_DESKTOP = "desktop"
 USE_CHECK_FOR_UPDATES = "check.for.updates"
 USE_BLUETOOTH = "bluetooth"
+USE_SAMBA = "samba"
+USE_DNS_IP = "dns.ip"
 
 LOGGING = "logging"
 FILE_LOGGING = "file.logging"
@@ -105,12 +108,14 @@ FILE_BROWSER_ROWS = "rows"
 FILE_BROWSER_COLUMNS = "columns"
 ALIGN_BUTTON_CONTENT_X = "alignment"
 SORT_BY_TYPE = "sort.by.type"
+FILE_TYPES = "file.types"
 WRAP_LABELS = "wrap.lines"
 HORIZONTAL_LAYOUT = "horizontal.layout"
 FONT_HEIGHT_PERCENT = "font.height"
 USE_SWITCH = "use.switch"
 DISK_SWITCH_FILE = "disks.txt"
 NAS_FILE = "nas.txt"
+ASCENDING = "ascending"
 
 PLAYBACK_ORDER = "playback.order"
 PLAYBACK_CYCLIC = "cyclic"
@@ -132,6 +137,12 @@ PODCAST_EPISODE_NAME = "podcast.episode.name"
 PODCAST_EPISODE_URL = "podcast.episode.url"
 PODCAST_EPISODE_TIME = "podcast.episode.time"
 
+YA_STREAM_ID = "ya.stream.id"
+YA_STREAM_NAME = "ya.stream.name"
+YA_STREAM_URL = "ya.stream.url"
+YA_THUMBNAIL_PATH = "ya.stream.thumbnail.path"
+YA_STREAM_TIME = "ya.stream.time"
+
 HOME = "home"
 HOME_MENU = "home.menu"
 RADIO = "radio"
@@ -142,6 +153,9 @@ CD_PLAYER = "cd-player"
 PODCASTS = "podcasts"
 AIRPLAY = "airplay"
 SPOTIFY_CONNECT = "spotify-connect"
+BLUETOOTH_SINK = "bluetooth-sink"
+YA_STREAM = "ya-streams"
+ARCHIVE = "archive"
 
 COLLECTION = "collection"
 DATABASE_FILE = "database.file"
@@ -314,6 +328,10 @@ VUMETER = "peppymeter"
 WEATHER = "peppyweather"
 SPECTRUM = "spectrum"
 LYRICS = "lyrics"
+PEXELS = "pexels"
+MONITOR = "monitor"
+HOROSCOPE = "horoscope"
+STOCK = "stock"
 RANDOM = "random"
 GENERATED_IMAGE = "generated.img."
 FILE_INFO = "file-info"
@@ -386,6 +404,8 @@ VLC = "vlcclient"
 MPV = "mpvclient"
 
 CURRENT_PLAYER_MODE = "current.player.mode"
+MODES = [RADIO, AUDIO_FILES, AUDIOBOOKS, STREAM, CD_PLAYER, PODCASTS, AIRPLAY, SPOTIFY_CONNECT, COLLECTION, BLUETOOTH_SINK, YA_STREAM]
+ORDERS = [PLAYBACK_CYCLIC, PLAYBACK_REGULAR, PLAYBACK_SINGLE_TRACK, PLAYBACK_SHUFFLE, PLAYBACK_SINGLE_CYCLIC]
 
 class Config(object):
     """ Read configuration files and prepare dictionary """
@@ -507,9 +527,12 @@ class Config(object):
         backgrounds = {}
 
         for section in sections[1:]:
-            bgr = {BGR_FILENAME: config_file.get(section, BGR_FILENAME)}
+            try:
+                bgr = {BGR_FILENAME: config_file.get(section, BGR_FILENAME)}
+                bgr[WEB_BGR_BLUR_RADIUS] = config_file.getint(section, WEB_BGR_BLUR_RADIUS)
+            except:
+                bgr = {}
             bgr[BLUR_RADIUS] = config_file.getint(section, BLUR_RADIUS)
-            bgr[WEB_BGR_BLUR_RADIUS] = config_file.getint(section, WEB_BGR_BLUR_RADIUS)
             bgr[OVERLAY_COLOR] = self.get_color_tuple(config_file.get(section, OVERLAY_COLOR))
             bgr[OVERLAY_OPACITY] = 255 - config_file.getint(section, OVERLAY_OPACITY)
             backgrounds[section] = bgr
@@ -798,6 +821,8 @@ class Config(object):
         config[FILE_BROWSER_COLUMNS] = config_file.getint(FILE_BROWSER, FILE_BROWSER_COLUMNS)
         config[ALIGN_BUTTON_CONTENT_X] = config_file.get(FILE_BROWSER, ALIGN_BUTTON_CONTENT_X)
         config[SORT_BY_TYPE] = config_file.getboolean(FILE_BROWSER, SORT_BY_TYPE)
+        config[FILE_TYPES] = self.get_list(config_file, FILE_BROWSER, FILE_TYPES)
+        config[ASCENDING] = config_file.getboolean(FILE_BROWSER, ASCENDING)
         config[WRAP_LABELS] = config_file.getboolean(FILE_BROWSER, WRAP_LABELS)
         config[HORIZONTAL_LAYOUT] = config_file.getboolean(FILE_BROWSER, HORIZONTAL_LAYOUT)
         config[FONT_HEIGHT_PERCENT] = config_file.getint(FILE_BROWSER, FONT_HEIGHT_PERCENT)
@@ -815,9 +840,11 @@ class Config(object):
         c[USE_ALBUM_ART] = config_file.getboolean(USAGE, USE_ALBUM_ART)
         c[USE_AUTO_PLAY] = config_file.getboolean(USAGE, USE_AUTO_PLAY)
         c[USE_LONG_PRESS_TIME] = config_file.getint(USAGE, USE_LONG_PRESS_TIME)
-        c[USE_POWEROFF] = config_file.getboolean(USAGE, USE_POWEROFF)
+        c[USE_DESKTOP] = config_file.getboolean(USAGE, USE_DESKTOP)
         c[USE_CHECK_FOR_UPDATES] = config_file.getboolean(USAGE, USE_CHECK_FOR_UPDATES)
         c[USE_BLUETOOTH] = config_file.getboolean(USAGE, USE_BLUETOOTH)
+        c[USE_SAMBA] = config_file.getboolean(USAGE, USE_SAMBA)
+        c[USE_DNS_IP] = config_file.get(USAGE, USE_DNS_IP)
         config[USAGE] = c
         
         if not config_file.getboolean(LOGGING, ENABLE_STDOUT):
@@ -884,6 +911,8 @@ class Config(object):
         c[AIRPLAY] = config_file.getboolean(HOME_MENU, AIRPLAY)
         c[SPOTIFY_CONNECT] = config_file.getboolean(HOME_MENU, SPOTIFY_CONNECT)
         c[COLLECTION] = config_file.getboolean(HOME_MENU, COLLECTION)
+        c[BLUETOOTH_SINK] = config_file.getboolean(HOME_MENU, BLUETOOTH_SINK)
+        c[YA_STREAM] = config_file.getboolean(HOME_MENU, YA_STREAM)
         config[HOME_MENU] = c
 
         c = {EQUALIZER: config_file.getboolean(HOME_NAVIGATOR, EQUALIZER)}
@@ -1044,6 +1073,10 @@ class Config(object):
         c[WEATHER] = config_file.getboolean(SCREENSAVER_MENU, WEATHER)
         c[SPECTRUM] = config_file.getboolean(SCREENSAVER_MENU, SPECTRUM)
         c[LYRICS] = config_file.getboolean(SCREENSAVER_MENU, LYRICS)
+        c[PEXELS] = config_file.getboolean(SCREENSAVER_MENU, PEXELS)
+        c[MONITOR] = config_file.getboolean(SCREENSAVER_MENU, MONITOR)
+        c[HOROSCOPE] = config_file.getboolean(SCREENSAVER_MENU, HOROSCOPE)
+        c[STOCK] = config_file.getboolean(SCREENSAVER_MENU, STOCK)
         c[RANDOM] = config_file.getboolean(SCREENSAVER_MENU, RANDOM)          
         config[SCREENSAVER_MENU] = c
 
@@ -1103,7 +1136,10 @@ class Config(object):
         except:
             c[SERVER_STOP_COMMAND] = None
 
-        c[CLIENT_NAME] = config_file.get(section_name, CLIENT_NAME)
+        try:
+            c[CLIENT_NAME] = config_file.get(section_name, CLIENT_NAME)
+        except:
+            c[CLIENT_NAME] = None
         
         try:
             c[STREAM_CLIENT_PARAMETERS] = config_file.get(section_name, STREAM_CLIENT_PARAMETERS)
@@ -1132,6 +1168,8 @@ class Config(object):
         players[MPV_NAME + "." + WINDOWS_PLATFORM] = self.get_player_config(MPV_NAME, WINDOWS_PLATFORM, config_file)
         players[SHAIRPORT_SYNC_NAME + "." + LINUX_PLATFORM] = self.get_player_config(SHAIRPORT_SYNC_NAME, LINUX_PLATFORM, config_file)
         players[RASPOTIFY_NAME + "." + LINUX_PLATFORM] = self.get_player_config(RASPOTIFY_NAME, LINUX_PLATFORM, config_file)
+        players[BLUETOOTH_SINK_NAME + "." + LINUX_PLATFORM] = self.get_player_config(BLUETOOTH_SINK_NAME, LINUX_PLATFORM, config_file)
+        players[BLUETOOTH_SINK_NAME + "." + WINDOWS_PLATFORM] = self.get_player_config(BLUETOOTH_SINK_NAME, WINDOWS_PLATFORM, config_file)
         return players
 
     def save_players(self, parameters):
@@ -1225,7 +1263,9 @@ class Config(object):
                     language_name_found = True
                     break
             if not language_name_found:
-                self.exit("Language is not supported: " + lang)
+                logging.error("Language is not supported: " + lang)
+                lang = languages[0]["name"]
+                logging.debug("Set " + lang + " as the current language")
                             
         c[LANGUAGE] = lang        
         c[STREAM] = 0
@@ -1302,6 +1342,13 @@ class Config(object):
         c[PODCAST_EPISODE_TIME] = config_file.get(PODCASTS, PODCAST_EPISODE_TIME)
         config[PODCASTS] = c
 
+        c = {YA_STREAM_ID: config_file.get(YA_STREAM, YA_STREAM_ID)}
+        c[YA_STREAM_NAME] = config_file.get(YA_STREAM, YA_STREAM_NAME)
+        c[YA_STREAM_URL] = self.cleanup_url(config_file, YA_STREAM, YA_STREAM_URL)
+        c[YA_THUMBNAIL_PATH] = self.cleanup_url(config_file, YA_STREAM, YA_THUMBNAIL_PATH)
+        c[YA_STREAM_TIME] = config_file.get(YA_STREAM, YA_STREAM_TIME)
+        config[YA_STREAM] = c
+
         for language in config[KEY_LANGUAGES]:
             n = language[NAME]
             k = STATIONS + "." + n
@@ -1333,6 +1380,23 @@ class Config(object):
         except:
             c[POWEROFF] = False                   
         config[TIMER] = c
+
+    def cleanup_url(self, conf, section, property):
+        """ Replace double %% by single %
+
+        :param conf: config file parser
+        :param section: section name
+        :param property: property name
+
+        :return: processed URL
+        """
+        url = ""
+
+        url = conf.get(section, property)
+        if url and "%%" in url:
+            url = url.replace("%%", "%")
+
+        return url
 
     def get_list(self, c, section_name, property_name):
         """ Return property which contains comma separated values
@@ -1392,7 +1456,7 @@ class Config(object):
         config_parser.optionxform = str
         config_parser.read(FILE_CURRENT, encoding=UTF8)
         
-        a = b = c = d = e = f = g = h = i = stations_changed = None
+        a = b = c = d = e = f = g = h = i = j = stations_changed = None
         
         if self.config[USAGE][USE_AUTO_PLAY]:        
             c = self.save_section(FILE_PLAYBACK, config_parser)
@@ -1409,13 +1473,14 @@ class Config(object):
             
             f = self.save_section(AUDIOBOOKS, config_parser)
             h = self.save_section(PODCASTS, config_parser)
+            j = self.save_section(YA_STREAM, config_parser)
 
         a = self.save_section(CURRENT, config_parser)
         b = self.save_section(PLAYER_SETTINGS, config_parser)
         e = self.save_section(SCREENSAVER, config_parser)
         g = self.save_section(TIMER, config_parser)
         
-        if a or b or c or d or e or f or g or h or i or stations_changed:
+        if a or b or c or d or e or f or g or h or i or j or stations_changed:
             with codecs.open(FILE_CURRENT, 'w', UTF8) as file:
                 config_parser.write(file)
                 
@@ -1438,7 +1503,14 @@ class Config(object):
             config_parser.add_section(name)
         
         for t in content.items():
-            config_parser.set(name, t[0], str(t[1]))
+            try:
+                s = t[1]
+                if isinstance(s, str) and "%" in s:
+                    s = s.replace("%", "%%")
+                config_parser.set(name, t[0], str(s))
+            except Exception as e:
+                logging.error(e)
+                return 0
             
         return 1
 

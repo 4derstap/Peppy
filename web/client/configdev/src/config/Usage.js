@@ -1,4 +1,4 @@
-/* Copyright 2019-2020 Peppy Player peppy.player@gmail.com
+/* Copyright 2019-2022 Peppy Player peppy.player@gmail.com
  
 This file is part of Peppy Player.
  
@@ -34,21 +34,25 @@ export default class Usage extends React.Component {
             {Factory.createCheckbox("web", params, updateState, labels)}
             {Factory.createCheckbox("stream.server", params, updateState, labels)}
             {Factory.createCheckbox("browser.stream.player", params, updateState, labels)}
+            {Factory.createCheckbox("voice.assistant", params, updateState, labels)}
           </FormGroup>
           {Factory.createNumberTextField("long.press.time.ms", params, updateState, 
             "ms", {width: "10rem", marginTop: "1rem"}, classes, labels
           )}
+          {Factory.createNumberTextField("dns.ip", params, updateState,
+            "", {width: "10rem", marginTop: "1rem"}, classes, labels
+          )}
         </FormControl>
         <FormControl component="fieldset">
           <FormGroup column="true">
-            {Factory.createCheckbox("voice.assistant", params, updateState, labels)}
             {Factory.createCheckbox("headless", params, updateState, labels)}
             {Factory.createCheckbox("vu.meter", params, updateState, labels)}
             {Factory.createCheckbox("album.art", params, updateState, labels)}
             {Factory.createCheckbox("auto.play", params, updateState, labels)}
-            {Factory.createCheckbox("poweroff", params, updateState, labels)}
+            {Factory.createCheckbox("desktop", params, updateState, labels)}
             {Factory.createCheckbox("check.for.updates", params, updateState, labels)}
             {Factory.createCheckbox("bluetooth", params, updateState, labels)}
+            {Factory.createCheckbox("samba", params, updateState, labels)}
           </FormGroup>
         </FormControl>
       </div>

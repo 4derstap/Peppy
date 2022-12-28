@@ -1,4 +1,4 @@
-/* Copyright 2019-2021 Peppy Player peppy.player@gmail.com
+/* Copyright 2019-2022 Peppy Player peppy.player@gmail.com
  
 This file is part of Peppy Player.
  
@@ -23,9 +23,13 @@ import Lyrics from "../screensavers/Lyrics";
 import Weather from "../screensavers/Weather";
 import Random from "../screensavers/Random";
 import Slideshow from "../screensavers/Slideshow";
+import Pexels from "../screensavers/Pexels";
+import Monitor from "../screensavers/Monitor";
+import Horoscope from "../screensavers/Horoscope";
+import Stock from "../screensavers/Stock";
 
 export const screensaversSections = [
-  "clock", "logo", "lyrics", "peppyweather", "random", "slideshow", "peppymeter", "spectrum"
+  "clock", "logo", "slideshow", "peppyweather", "lyrics", "pexels", "monitor", "horoscope", "stock", "random"
 ];
 
 export default class ScreensaversTab extends React.Component {
@@ -33,18 +37,21 @@ export default class ScreensaversTab extends React.Component {
     if (!this.props.screensavers) {
       return null;
     }
-
-    const { classes, labels, topic, updateState, screensavers } = this.props;
+    const { classes, labels, topic, updateState, screensavers, fonts, clockImageFolders } = this.props;
     const p = screensavers[screensaversSections[topic]];
 
     return (
       <main className={classes.content}>
-        {topic === 0 && <Clock labels={labels} classes={classes} values={p} updateState={updateState}/>}
+        {topic === 0 && <Clock labels={labels} classes={classes} values={p} updateState={updateState} fonts={fonts} imageFolders={clockImageFolders}/>}
         {topic === 1 && <Logo labels={labels} classes={classes} values={p} updateState={updateState}/>}
-        {topic === 2 && <Lyrics labels={labels} classes={classes} values={p} updateState={updateState}/>}
+        {topic === 2 && <Slideshow labels={labels} classes={classes} values={p} updateState={updateState}/>}
         {topic === 3 && <Weather labels={labels} classes={classes} values={p} updateState={updateState}/>}
-        {topic === 4 && <Random labels={labels} classes={classes} values={p} updateState={updateState}/>}
-        {topic === 5 && <Slideshow labels={labels} classes={classes} values={p} updateState={updateState}/>}
+        {topic === 4 && <Lyrics labels={labels} classes={classes} values={p} updateState={updateState}/>}
+        {topic === 5 && <Pexels labels={labels} classes={classes} values={p} updateState={updateState}/>}
+        {topic === 6 && <Monitor labels={labels} classes={classes} values={p} updateState={updateState}/>}
+        {topic === 7 && <Horoscope labels={labels} classes={classes} values={p} updateState={updateState}/>}
+        {topic === 8 && <Stock labels={labels} classes={classes} values={p} updateState={updateState}/>}
+        {topic === 9 && <Random labels={labels} classes={classes} values={p} updateState={updateState}/>}
       </main>
     );
   }

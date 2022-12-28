@@ -24,12 +24,14 @@ VLC_NAME = "vlc"
 SHAIRPORT_SYNC_NAME = "shairport-sync"
 SHAIRPORT_CLIENT_NAME = "shairport"
 RASPOTIFY_NAME = "raspotify"
+BLUETOOTH_SINK_NAME = "bluetooth-sink"
+BLUETOOTH_CLIENT_NAME = "bluetoothsink"
 MPV_NAME = "mpv"
 
 class Proxy(object):
     """ This class serves as a proxy object for audio players """
         
-    def __init__(self, client_name, linux, folder, start_command, stop_command, volume):
+    def __init__(self, client_name, linux, folder, start_command, stop_command, volume, stream_server_parameters):
         """ Initializer
         
         :param client_name: player class name
@@ -38,6 +40,7 @@ class Proxy(object):
         :param start_command: command which starts the process
         :param stop_command: command which stops the process
         :param volume: volume level
+        :param stream_server_parameters: streaming server parameters
         """
         self.client_name = client_name
         self.linux = linux       
@@ -45,6 +48,7 @@ class Proxy(object):
         self.start_command = start_command
         self.stop_command = stop_command
         self.volume = volume
+        self.stream_server_parameters = stream_server_parameters
         self.proxy = None
     
     def start(self):
@@ -54,7 +58,7 @@ class Proxy(object):
         if self.folder:
             os.chdir(self.folder)
         
-        names = [SHAIRPORT_CLIENT_NAME, RASPOTIFY_NAME]
+        names = [SHAIRPORT_CLIENT_NAME, RASPOTIFY_NAME, BLUETOOTH_CLIENT_NAME]
 
         if MPD_NAME in self.client_name or self.client_name in names:
             self.proxy = Popen(self.start_command, stdout=PIPE, stdin=PIPE, stderr=PIPE, shell=True)

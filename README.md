@@ -1,3 +1,39 @@
+## Signac Edition 2022.12.18
+
+* Added File Browser Quick Configuration popup.
+* Refactored VU Meter screensaver. Added new default meters.
+* Improved Clock screensaver.
+* Implemented Font upload functionality.
+* Volume and equalizer values are visible now during update.
+* Improved File Browser REST API.
+* Fixed Timer wake-up function and language disabling issue.
+
+## Seurat Edition 2022.09.25
+
+* Created new screensaver - Monitor.
+* Created new screensaver - Horoscope.
+* Created new screensaver - Stock.
+* Added ability to use Album Art as a screen background.
+* The player can be started as a service now.
+* Fixed audiobooks issues, YA Streams issue, volume issue after switching from the AirPlay mode and Home Navigator issue.
+
+## Cezanne Edition 2022.07.09
+
+* Added new mode - YouTube Audio Streams (YA Streams).
+* Created new screensaver - Pexels.
+* Refactored the Spectrum Analyzer screensaver.
+* Refactored the playlists in the Configuration Web UI.
+* Fixed streaming functionality.
+* Fixed the issues with Bluetooth, radio favorites, podcasts, album art and lyrics.
+
+## Van Gogh Edition 2022.04.03
+
+* Implemented REST API which allows to create alternative GUIs.
+* Added new mode - Bluetooth Sink.
+* Introduced Share Folders functionality.
+* Fixed Stream mode issues.
+* Fixed the issues with Equalizer and VU Meter in the AirPlay mode.
+
 ## Manet Edition 2021.12.17
 
 * Simplified adding new languages.

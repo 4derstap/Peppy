@@ -1,4 +1,4 @@
-/* Copyright 2019-2021 Peppy Player peppy.player@gmail.com
+/* Copyright 2019-2022 Peppy Player peppy.player@gmail.com
  
 This file is part of Peppy Player.
  
@@ -88,7 +88,9 @@ export function updateScreensavers(caller, name, value) {
       }
     }
     newState[section]["savers"] = newString;
-  } else {
+  } else if (section === "horoscope") {
+    newState["horoscope"]["zodiac"][name] = value;
+  }  else {
     newState[section][name] = value;
   }
   caller.setState({
@@ -126,6 +128,13 @@ export function updateStreams(caller, value) {
     streams: value,
     streamsText: text,
     streamsDirty: true
+  });
+}
+
+export function updateYaStreams(caller, value) {
+  caller.setState({
+    yastreams: value,
+    yastreamsDirty: true
   });
 }
 
@@ -191,5 +200,20 @@ export function updateNas(caller, name, value, index) {
   caller.setState({
     system: newState,
     nasDirty: true
+  });
+}
+
+export function updateShare(caller, name, value, index) {
+  const newState = Object.assign({}, caller.state.system);
+  const shares = newState.shares;
+  let share = shares[index];
+  if(name === "") {
+    name = "options";
+  }
+  share[name] = value;
+
+  caller.setState({
+    system: newState,
+    shareDirty: true
   });
 }

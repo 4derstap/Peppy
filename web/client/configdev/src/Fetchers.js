@@ -1,4 +1,4 @@
-/* Copyright 2019-2021 Peppy Player peppy.player@gmail.com
+/* Copyright 2019-2022 Peppy Player peppy.player@gmail.com
  
 This file is part of Peppy Player.
  
@@ -308,8 +308,25 @@ export function getStreams(caller) {
   });
 }
 
-export function getFonts(caller) {
-  if (caller.state.fonts) {
+export function getYaStreams(caller) {
+  if (caller.state.yastreams) {
+    return;
+  }
+
+  fetch("/yastreams").then(function (response) {
+    return response.json();
+  }).then((json) => {
+    caller.setState({ yastreams: json });
+  }).catch(function (err) {
+    console.log('Fetch problem: ' + err.message);
+  });
+}
+
+export function getPlaylists(caller) {
+}
+
+export function getFonts(caller, ignoreExistingFonts) {
+  if (caller.state.fonts && ignoreExistingFonts === undefined) {
     return;
   }
 
@@ -343,6 +360,14 @@ export function getSystem(caller) {
       }).then((json) => {
         newState.nases = json;
         caller.setState({ system: newState });
+        fetch("/sharefolder/shares", { method: "GET" }).then(function (response) {
+          return response.json();
+        }).then((json) => {
+          newState.shares = json;
+          caller.setState({ system: newState });
+        }).catch(function (e) {
+          console.log('Fetch nas problem: ' + e.message);
+        });
       }).catch(function (e) {
         console.log('Fetch nas problem: ' + e.message);
       });
@@ -384,7 +409,7 @@ export function save(caller, callback) {
   }
 
   const dirtyFlags = ["parametersDirty", "playersDirty", "screensaversDirty", "playlistsDirty",
-    "podcastsDirty", "streamsDirty", "backgroundDirty", "nasDirty"];
+    "podcastsDirty", "streamsDirty", "backgroundDirty", "nasDirty", "shareDirty", "yastreamsDirty"];
 
   let promises = [];
   if (caller.state[dirtyFlags[0]]) promises.push(saveConfiguration(caller));
@@ -395,6 +420,8 @@ export function save(caller, callback) {
   if (caller.state[dirtyFlags[5]]) promises.push(saveStreams(caller));
   if (caller.state[dirtyFlags[6]]) promises.push(saveBackground(caller));
   if (caller.state[dirtyFlags[7]]) promises.push(saveNases(caller));
+  if (caller.state[dirtyFlags[8]]) promises.push(saveShares(caller));
+  if (caller.state[dirtyFlags[9]]) promises.push(saveYaStreams(caller));
 
   caller.setState({ showProgress: true });
   const msg = caller.state.labels["saved.successfully"];
@@ -462,6 +489,10 @@ export function saveNases(caller) {
   return saver("/nasmanager/save", caller.state.system.nases);
 }
 
+export function saveShares(caller) {
+  return saver("/sharefolder/save", caller.state.system.shares);
+}
+
 export function savePlaylists(caller) {
   const languages = Object.keys(caller.state.playlists);
   let images = [];
@@ -514,6 +545,10 @@ export function savePlaylists(caller) {
 
 export function savePodcasts(caller) {
   return saver("/podcasts", caller.state.podcasts)
+}
+
+export function saveYaStreams(caller) {
+  return saver("/yastreams", caller.state.yastreams)
 }
 
 export function saveStreams(caller) {
@@ -915,6 +950,44 @@ export function deleteNas(caller, index) {
   }
 }
 
+export function addNewShare(caller) {
+  const newState = Object.assign({}, caller.state.system);
+  const shares = newState.shares;
+
+  const emptyShare = {
+    "name": "",
+    "path": ""
+  };
+  shares.push(emptyShare);
+  
+  caller.setState({
+    system: newState
+  });
+}
+
+export function refreshShares(caller) {
+  fetch("/sharefolder/shares", { method: "GET" }).then(function (response) {
+    return response.json();
+  }).then((json) => {
+    const newState = Object.assign({}, caller.state.system);
+    newState.shares = json;
+    caller.setState({ system: newState });
+  }).catch(function (e) {
+    console.log('Fetch Shares problem: ' + e.message);
+  });
+}
+
+export function deleteShare(caller, index) {
+  const newState = Object.assign({}, caller.state.system);
+  const shares = newState.shares;
+  shares.splice(index, 1);
+
+  caller.setState({
+    system: newState,
+    shareDirty: true
+  });
+}
+
 export function getLog(caller, refreshLog) {
   if (caller.state.log && !refreshLog) {
     return;
@@ -945,6 +1018,25 @@ export function uploadPlaylist(caller, path, data, id) {
     })
     let playlistIndex = caller.getRadioPlaylistMenu().indexOf(id);
     getRadioPlaylist(caller, playlistIndex, true);
+  }).catch(function (err) {
+    console.log('Upload problem: ' + err.message);
+  });
+}
+
+export function uploadFont(caller, data) {
+  let query = encodeURI("/fonts");
+  let formData = new FormData();
+  formData.append("data", data);
+  const msg = caller.state.labels["saved.successfully"];
+
+  fetch(query, {method: "POST", body: formData}).then(function (_) {
+    caller.setState({
+      openSnack: true,
+      notificationMessage: msg,
+      notificationVariant: "success",
+      showProgress: false
+    })
+    getFonts(caller, true);
   }).catch(function (err) {
     console.log('Upload problem: ' + err.message);
   });
