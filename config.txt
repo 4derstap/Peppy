@@ -165,8 +165,8 @@ font.name = FiraSans.ttf
 [volume.control]
 type = amixer
 amixer.scale = linear
-amixer.control = Headphone
-initial.volume.level = 
+amixer.control = Master
+initial.volume.level = 10
 
 [player.screen]
 top.height = 14
